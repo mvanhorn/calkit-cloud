@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
 
-import { type Issue, ProjectsService } from "../client"
+import { ApiError, type Issue, ProjectsService } from "../client"
 
 const useProject = (accountName: string, projectName: string, ref?: string) => {
   const queryClient = useQueryClient()
@@ -74,12 +74,13 @@ const useProjectReadme = (
         path: "README.md",
         ref,
       }),
-    retry: (failureCount, error: any) => {
-      // A missing README is the common case for fresh projects — don't
+    retry: (failureCount, error) => {
+      // A missing README is the common case for fresh projects, so don't
       // burn three extra round-trips before the UI settles on "no README".
-      const status =
-        error?.status ?? error?.response?.status ?? error?.statusCode ?? null
-      if (status === 404 || status === 403) {
+      if (
+        error instanceof ApiError &&
+        (error.status === 404 || error.status === 403)
+      ) {
         return false
       }
       return failureCount < 3
